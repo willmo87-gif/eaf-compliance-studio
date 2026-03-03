@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EAF Compliance Studio — MiFID II</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:#f1f5f9;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+button{transition:opacity .15s;}
+button:hover:not(:disabled){opacity:.85;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState}=React;
+
+const DEMO=[
+  {id:1,nombre:"Carmen Villalba Ruiz",email:"c.villalba@email.com",tel:"612 345 678",cat:"Minorista",perfil:"Moderado",pat:180000,fechaTest:"2024-03-15",proxRev:"2025-03-15",estado:"activo",alertas:0,test:true,informe:true,exante:true,conflictos:true},
+  {id:2,nombre:"Marcos Izquierdo Pardo",email:"m.izquierdo@empresa.es",tel:"699 876 543",cat:"Minorista",perfil:"Decidido",pat:520000,fechaTest:"2024-01-20",proxRev:"2025-01-20",estado:"alerta",alertas:2,test:true,informe:false,exante:false,conflictos:true},
+  {id:3,nombre:"Lucía Ferrer Montoya",email:"lucia.ferrer@gmail.com",tel:"655 432 109",cat:"Minorista",perfil:null,pat:95000,fechaTest:null,proxRev:null,estado:"pendiente",alertas:3,test:false,informe:false,exante:false,conflictos:false},
+  {id:4,nombre:"Alberto Casas Mendoza",email:"acasas@inversiones.com",tel:"634 567 890",cat:"Profesional",perfil:"Moderado-Decidido",pat:1200000,fechaTest:"2023-11-10",proxRev:"2024-11-10",estado:"vencido",alertas:1,test:true,informe:true,exante:true,conflictos:false},
+];
+
+const SECCIONES=[
+  {id:"A",titulo:"Conocimientos y Experiencia",icon:"🎓",base:"Art. 25.2 MiFID II",qs:[
+    {id:"A1",q:"¿Cuál es su nivel de formación en el ámbito financiero o económico?",ops:[{t:"Sin formación financiera específica",p:1},{t:"Formación básica autodidacta",p:2},{t:"Formación universitaria en economía o derecho financiero",p:3},{t:"Formación especializada: máster, certificaciones EFA/CFA/CFP",p:4}]},
+    {id:"A2",q:"¿Con qué instrumentos financieros ha operado anteriormente?",ops:[{t:"Nunca he invertido en instrumentos financieros",p:1},{t:"Depósitos y fondos de inversión sencillos (UCITS)",p:2},{t:"Acciones cotizadas, bonos y fondos de renta variable",p:3},{t:"Derivados, estructurados, hedge funds o activos internacionales",p:4}]},
+    {id:"A3",q:"¿Con qué frecuencia ha operado en los últimos 2 años?",ops:[{t:"No he realizado ninguna operación",p:1},{t:"Menos de 5 operaciones en total",p:2},{t:"Entre 5 y 20 operaciones",p:3},{t:"Más de 20 operaciones con seguimiento activo",p:4}]},
+    {id:"A4",q:"¿Trabaja o ha trabajado en el sector financiero en puesto relevante?",ops:[{t:"No, nunca he trabajado en finanzas",p:1},{t:"Vinculado ocasionalmente a finanzas",p:2},{t:"Sí, en sector financiero pero no en gestión de inversiones",p:3},{t:"Sí, como gestor de carteras, analista o asesor",p:4}]},
+    {id:"A5",q:"Si invierte €20.000 y la cartera cae un 15%, ¿cuánto vale ahora?",ops:[{t:"No estoy seguro de cómo calcularlo",p:1},{t:"€18.500 — el 15% se calcula sobre 6 meses",p:2},{t:"€17.000 — he perdido €3.000",p:3},{t:"Depende del tipo de activo y dividendos pendientes",p:4}]},
+  ]},
+  {id:"B",titulo:"Situación Financiera",icon:"💼",base:"Art. 25.2 MiFID II",qs:[
+    {id:"B1",q:"¿Cuáles son sus ingresos netos anuales aproximados?",ops:[{t:"Menos de 25.000€ anuales",p:1},{t:"Entre 25.000€ y 60.000€ anuales",p:2},{t:"Entre 60.000€ y 120.000€ anuales",p:3},{t:"Más de 120.000€ anuales",p:4}]},
+    {id:"B2",q:"¿Qué porcentaje de sus ingresos mensuales destina a gastos fijos?",ops:[{t:"Más del 80% — apenas me queda capacidad de ahorro",p:1},{t:"Entre el 60% y el 80%",p:2},{t:"Entre el 40% y el 60%",p:3},{t:"Menos del 40% — amplio margen de ahorro mensual",p:4}]},
+    {id:"B3",q:"Además de lo que desea invertir, ¿tiene fondo de emergencia líquido?",ops:[{t:"No tengo fondo de emergencia separado",p:1},{t:"Tengo ahorros pero no diferenciados como emergencia",p:2},{t:"Sí, equivalente a 3-6 meses de gastos",p:3},{t:"Sí, más de 6 meses de gastos en activos muy líquidos",p:4}]},
+    {id:"B4",q:"¿Tiene deudas significativas que afecten a su capacidad inversora?",ops:[{t:"Sí, mis deudas superan el 50% de mi patrimonio neto",p:1},{t:"Sí, pero controladas — 20-50% del patrimonio",p:2},{t:"Solo la hipoteca principal, bien gestionada",p:3},{t:"No tengo deudas significativas",p:4}]},
+    {id:"B5",q:"¿En cuánto tiempo podría necesitar liquidar esta inversión?",ops:[{t:"Podría necesitarla en menos de 3 meses",p:1},{t:"No la necesitaré antes de 1-2 años",p:2},{t:"No la necesitaré antes de 3-5 años",p:3},{t:"Puedo mantenerla más de 5-10 años sin necesidad de liquidez",p:4}]},
+  ]},
+  {id:"C",titulo:"Objetivos y Tolerancia al Riesgo",icon:"🎯",base:"Art. 25.2 MiFID II",qs:[
+    {id:"C1",q:"¿Cuál es el objetivo principal de esta inversión?",ops:[{t:"Preservar el capital — prioridad absoluta",p:1},{t:"Obtener ingresos regulares con riesgo limitado",p:2},{t:"Crecimiento moderado a largo plazo aceptando volatilidad",p:3},{t:"Maximizar rendimiento asumiendo pérdidas temporales importantes",p:4}]},
+    {id:"C2",q:"Si su cartera cayera un 25% en un trimestre, ¿qué haría?",ops:[{t:"Vendería todo inmediatamente",p:1},{t:"Me preocuparía mucho y reduciría mi exposición",p:2},{t:"Mantendría la inversión esperando recuperación",p:3},{t:"Aprovecharía para invertir más capital a precios bajos",p:4}]},
+    {id:"C3",q:"¿Cuál es su horizonte temporal para esta inversión?",ops:[{t:"Menos de 2 años",p:1},{t:"Entre 2 y 5 años",p:2},{t:"Entre 5 y 10 años",p:3},{t:"Más de 10 años",p:4}]},
+    {id:"C4",q:"¿Qué pérdida máxima anual podría tolerar?",ops:[{t:"Cero — necesito capital garantizado",p:1},{t:"Hasta un 10% anual sería tolerable",p:2},{t:"Hasta un 25% anual con potencial de recuperación",p:3},{t:"Más del 30% si la rentabilidad esperada compensa",p:4}]},
+    {id:"C5",q:"¿Cómo definiría su actitud general ante el riesgo financiero?",ops:[{t:"Muy conservador — la seguridad del capital es mi prioridad",p:1},{t:"Conservador — prefiero retornos modestos con riesgo mínimo",p:2},{t:"Equilibrado — acepto riesgo moderado por mayor rentabilidad",p:3},{t:"Decidido — busco máxima rentabilidad y asumo riesgo elevado",p:4}]},
+  ]},
+  {id:"D",titulo:"Preferencias ESG",icon:"🌱",base:"RD (UE) 2021/1253",qs:[
+    {id:"D1",q:"¿Tiene preferencias sobre el impacto ESG de sus inversiones?",ops:[{t:"No tengo preferencias de sostenibilidad",p:0},{t:"Prefiero evitar sectores muy dañinos (armas, tabaco, carbón)",p:1},{t:"Me interesan inversiones ESG si no penalizan la rentabilidad",p:2},{t:"El impacto ESG es criterio clave — priorizo sostenibilidad",p:3}]},
+    {id:"D2",q:"¿Qué dimensión de sostenibilidad le resulta más relevante?",ops:[{t:"Ninguna — no aplico criterios ESG",p:0},{t:"Medioambiental — cambio climático, energías renovables",p:1},{t:"Social — condiciones laborales, diversidad, derechos humanos",p:1},{t:"Gobernanza — transparencia corporativa, ética empresarial",p:1}]},
+    {id:"D3",q:"¿Qué porcentaje mínimo de su cartera desearía en inversiones sostenibles?",ops:[{t:"0% — no aplico criterios de sostenibilidad",p:0},{t:"Al menos el 20% de la cartera",p:1},{t:"Al menos el 50% de la cartera",p:2},{t:"Más del 80% de la cartera",p:3}]},
+  ]},
+];
+
+function calcPerfil(resp){
+  let sum=0,n=0;
+  Object.entries(resp).forEach(([k,v])=>{if(!k.startsWith("D")){sum+=v;n++;}});
+  const avg=n?sum/n:0;
+  if(avg<1.5)return{label:"Conservador",col:"#166534",bg:"#dcfce7",bdr:"#86efac",desc:"Preservación del capital. Renta fija, depósitos, fondos monetarios."};
+  if(avg<2.2)return{label:"Moderado-Conservador",col:"#0369a1",bg:"#e0f2fe",bdr:"#7dd3fc",desc:"Riesgo mínimo con algo más de rentabilidad. Mayoría en renta fija."};
+  if(avg<3.0)return{label:"Moderado",col:"#1d4ed8",bg:"#dbeafe",bdr:"#93c5fd",desc:"Equilibrio rentabilidad-seguridad. Cartera mixta con renta variable moderada."};
+  if(avg<3.5)return{label:"Moderado-Decidido",col:"#b45309",bg:"#fef3c7",bdr:"#fcd34d",desc:"Mayor tolerancia al riesgo. Predominio de renta variable diversificada."};
+  return{label:"Decidido",col:"#991b1b",bg:"#fee2e2",bdr:"#fca5a5",desc:"Alta tolerancia al riesgo. Renta variable global, alternativos, alta volatilidad."};
+}
+
+const fmt=(v)=>new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(v||0);
+const fmtDate=(d)=>d?new Date(d).toLocaleDateString("es-ES"):"—";
+const todayStr=()=>new Date().toISOString().split("T")[0];
+const daysDiff=(d)=>Math.round((new Date(d)-new Date())/(1000*60*60*24));
+
+const ST={activo:{col:"#15803d",bg:"#f0fdf4",bdr:"#86efac",lbl:"Activo"},alerta:{col:"#b45309",bg:"#fffbeb",bdr:"#fcd34d",lbl:"Alerta"},vencido:{col:"#991b1b",bg:"#fff1f2",bdr:"#fca5a5",lbl:"Vencido"},pendiente:{col:"#475569",bg:"#f8fafc",bdr:"#cbd5e1",lbl:"Pendiente"}};
+
+function App(){
+  const[page,setPage]=useState("dash");
+  const[clients,setClients]=useState(DEMO);
+  const[sel,setSel]=useState(null);
+  const[ts,setTs]=useState({phase:"idle",sec:0,resp:{},result:null});
+  const[docText,setDocText]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[showAdd,setShowAdd]=useState(false);
+  const[newC,setNewC]=useState({nombre:"",email:"",tel:"",pat:"",cat:"Minorista"});
+  const[toast,setToast]=useState(null);
+  const[apiKey,setApiKey]=useState("");
+  const[showApi,setShowApi]=useState(false);
+  const[eafNombre,setEafNombre]=useState("Mi EAF Asesores, S.L.");
+  const[menuOpen,setMenuOpen]=useState(false);
+  const[costesClient,setCostesClient]=useState(null);
+  const[costesForm,setCostesForm]=useState({importe:100000,comisionAsesora:1.0,ter:0.75,custodia:0.15,retrocesion:0.5,entradaSalida:0});
+  const[costesDoc,setCostesDoc]=useState("");
+  const[costesLoading,setCostesLoading]=useState(false);
+  const[conflictosDoc,setConflictosDoc]=useState("");
+  const[conflictosLoading,setConflictosLoading]=useState(false);
+  const[conflictosConfig,setConflictosConfig]=useState({retrocesiones:true,interesPropio:true,interClientes:true,beneficiosPersonales:true,relacionesPersonales:false});
+  const[reporteDoc,setReporteDoc]=useState("");
+  const[reporteLoading,setReporteLoading]=useState(false);
+  const[reporteTipo,setReporteTipo]=useState("trimestral");
+
+  const notify=(msg,ok=true)=>{setToast({msg,ok});setTimeout(()=>setToast(null),3500);};
+  const startTest=(c)=>{setSel(c);setTs({phase:"test",sec:0,resp:{},result:null});setDocText("");setPage("test");setMenuOpen(false);};
+  const allAns=(sec)=>sec.qs.every(q=>ts.resp[q.id]!==undefined);
+  const nav=(p)=>{setPage(p);setMenuOpen(false);};
+
+  const nextSec=()=>{
+    if(ts.sec<SECCIONES.length-1){setTs(s=>({...s,sec:s.sec+1}));return;}
+    const res=calcPerfil(ts.resp);
+    const rev=new Date(Date.now()+365*86400000).toISOString().split("T")[0];
+    setClients(cs=>cs.map(c=>c.id===sel.id?{...c,perfil:res.label,fechaTest:todayStr(),proxRev:rev,test:true,alertas:Math.max(0,c.alertas-2),estado:"activo"}:c));
+    setSel(a=>({...a,perfil:res.label,test:true,fechaTest:todayStr(),proxRev:rev}));
+    setTs(s=>({...s,phase:"done",result:res}));
+  };
+
+  const callAI=async(prompt,onDone,onError)=>{
+    if(!apiKey){onError("⚠️ Sin clave API. Haz clic en ⚙️ Configuración para añadirla.");return;}
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,messages:[{role:"user",content:prompt}]})
+      });
+      const d=await r.json();
+      if(d.error)onError("Error API: "+d.error.message);
+      else onDone(d.content?.map(b=>b.text||"").join("")||"Error generando.");
+    }catch(e){onError("Error de conexión. Verifique su clave de API.");}
+  };
+
+  const genInforme=async()=>{
+    const perfil=ts.result?.label||sel?.perfil;
+    const rTexto=SECCIONES.flatMap(s=>s.qs.map(q=>{const pts=ts.resp[q.id]??null;const op=pts!==null?q.ops.find(o=>o.p===pts):null;return "["+s.titulo+"] "+q.q+"\n   → "+(op?op.t:"(test previo)");})).join("\n");
+    setLoading(true);setDocText("");
+    await callAI("Eres experto en cumplimiento MiFID II en España. Genera un Informe de Idoneidad formal y completo CNMV-compliant en español.\n\nCLIENTE: "+sel.nombre+"\nCATEGORÍA: "+sel.cat+"\nPATRIMONIO: "+fmt(sel.pat)+"\nPERFIL: "+perfil+"\nFECHA: "+new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})+"\n\nRESPUESTAS TEST:\n"+rTexto+"\n\nEstructura EXACTA:\n\nINFORME DE IDONEIDAD — MiFID II Art. 25.6\nReferencia: EAF-"+new Date().getFullYear()+"-"+String(Math.floor(Math.random()*9000)+1000)+"\nFecha: "+new Date().toLocaleDateString("es-ES")+"\n\n1. IDENTIFICACIÓN DEL CLIENTE\n2. CATEGORÍA MiFID II Y NIVEL DE PROTECCIÓN\n3. PERFIL DE RIESGO RESULTANTE — "+(perfil||"").toUpperCase()+"\n4. EVALUACIÓN: CONOCIMIENTOS Y EXPERIENCIA\n5. EVALUACIÓN: SITUACIÓN FINANCIERA\n6. EVALUACIÓN: OBJETIVOS Y TOLERANCIA AL RIESGO\n7. PREFERENCIAS DE SOSTENIBILIDAD ESG\n8. INSTRUMENTOS IDÓNEOS PARA ESTE PERFIL\n9. INSTRUMENTOS NO RECOMENDABLES\n10. ASIGNACIÓN DE ACTIVOS ORIENTATIVA\n11. ADVERTENCIAS REGULATORIAS\n12. PRÓXIMA REVISIÓN OBLIGATORIA\n13. DECLARACIÓN DEL CLIENTE PARA FIRMA\n\nMínimo 700 palabras. Lenguaje jurídico formal. Cumplir Art. 25.6 MiFID II y Art. 54.12 RD 2017/565.",
+      (txt)=>{setDocText(txt);setClients(cs=>cs.map(c=>c.id===sel.id?{...c,informe:true,alertas:Math.max(0,c.alertas-1)}:c));notify("Informe generado ✓");},setDocText);
+    setLoading(false);
+  };
+
+  const genCostes=async()=>{
+    if(!costesClient){notify("Selecciona un cliente primero",false);return;}
+    const{importe,comisionAsesora,ter,custodia,retrocesion,entradaSalida}=costesForm;
+    const anual=(comisionAsesora+ter+custodia-retrocesion)/100*importe;
+    const yr1=anual+(entradaSalida/100*importe);
+    setCostesLoading(true);setCostesDoc("");
+    await callAI("Eres experto en MiFID II en España. Genera un Disclosure de Costes Ex-Ante completo y formal en español.\n\nCLIENTE: "+costesClient.nombre+" ("+costesClient.cat+")\nIMPORTE: "+fmt(importe)+"\nFECHA: "+new Date().toLocaleDateString("es-ES")+"\n\nCOSTES:\n- Comisión asesoramiento EAF: "+comisionAsesora+"% = "+fmt(comisionAsesora/100*importe)+"/año\n- TER del fondo: "+ter+"% = "+fmt(ter/100*importe)+"/año\n- Custodia: "+custodia+"% = "+fmt(custodia/100*importe)+"/año\n- Retrocesión recibida: "+retrocesion+"% = "+fmt(retrocesion/100*importe)+"/año\n- Costes entrada/salida: "+entradaSalida+"% = "+fmt(entradaSalida/100*importe)+" (único)\n\nIMPACTO:\n- Año 1: "+fmt(yr1)+" ("+((yr1/importe)*100).toFixed(2)+"%)\n- Años 1-3: "+fmt(yr1+anual*2)+"\n- Años 1-5: "+fmt(yr1+anual*4)+"\n\nEstructura:\n\nDISCLOSURE DE COSTES EX-ANTE — Art. 24.4 MiFID II\nReferencia: EXANTE-"+new Date().getFullYear()+"-"+String(Math.floor(Math.random()*9000)+1000)+"\n\n1. IDENTIFICACIÓN DEL CLIENTE Y OPERACIÓN\n2. COSTES DEL SERVICIO DE ASESORAMIENTO\n3. COSTES DEL INSTRUMENTO FINANCIERO\n4. COSTES DE TERCEROS Y OTROS GASTOS\n5. RETROCESIONES E INCENTIVOS — Art. 24.8\n6. IMPACTO ACUMULADO EN RENTABILIDAD\n7. COMPARATIVA RENTABILIDAD BRUTA VS NETA\n8. ADVERTENCIAS REGULATORIAS\n9. DECLARACIÓN DEL CLIENTE\n\nUsa tablas de texto. Lenguaje formal. Cumplir Art. 24.4 y 24.8 MiFID II.",
+      (txt)=>{setCostesDoc(txt);setClients(cs=>cs.map(c=>c.id===costesClient.id?{...c,exante:true,alertas:Math.max(0,c.alertas-1)}:c));notify("Disclosure ex-ante generado ✓");},setCostesDoc);
+    setCostesLoading(false);
+  };
+
+  const genConflictos=async()=>{
+    setConflictosLoading(true);setConflictosDoc("");
+    const tipos=Object.entries(conflictosConfig).filter(([,v])=>v).map(([k])=>({retrocesiones:"Retrocesiones e incentivos de terceros",interesPropio:"Interés propio en instrumentos recomendados",interClientes:"Conflictos entre clientes",beneficiosPersonales:"Beneficios personales del asesor",relacionesPersonales:"Relaciones personales o familiares con contrapartes"}[k])).join("\n- ");
+    await callAI("Eres experto en MiFID II en España. Genera una Política de Gestión de Conflictos de Interés completa para una EAF.\n\nEAF: "+eafNombre+"\nFECHA: "+new Date().toLocaleDateString("es-ES")+"\nCONFLICTOS:\n- "+tipos+"\n\nEstructura EXACTA:\n\nPOLÍTICA DE GESTIÓN DE CONFLICTOS DE INTERÉS — Art. 23 MiFID II\nEntidad: "+eafNombre+"\nFecha: "+new Date().toLocaleDateString("es-ES")+"\nVersión: 1.0\n\n1. OBJETO Y ÁMBITO DE APLICACIÓN\n2. DEFINICIÓN DE CONFLICTO DE INTERÉS\n3. IDENTIFICACIÓN DE CONFLICTOS POTENCIALES\n4. MEDIDAS DE GESTIÓN Y CONTROL\n5. PROCEDIMIENTO DE REVELACIÓN AL CLIENTE\n6. POLÍTICA DE RETRIBUCIONES E INCENTIVOS\n7. REGISTRO DE CONFLICTOS\n8. REVISIÓN Y ACTUALIZACIÓN ANUAL\n9. RESPONSABILIDADES Y APROBACIÓN\n10. DECLARACIÓN DEL CLIENTE\n\nMínimo 600 palabras. Lenguaje jurídico formal. Cumplir Art. 23 MiFID II y Arts. 33-35 RD 2017/565.",
+      (txt)=>{setConflictosDoc(txt);setClients(cs=>cs.map(c=>({...c,conflictos:true,alertas:Math.max(0,c.alertas-(c.conflictos?0:1))})));notify("Política de conflictos generada ✓");},setConflictosDoc);
+    setConflictosLoading(false);
+  };
+
+  const genReporte=async()=>{
+    setReporteLoading(true);setReporteDoc("");
+    const stats={total:clients.length,activos:clients.filter(c=>c.estado==="activo").length,minoristas:clients.filter(c=>c.cat==="Minorista").length,profesionales:clients.filter(c=>c.cat==="Profesional").length,conTest:clients.filter(c=>c.test).length,conInforme:clients.filter(c=>c.informe).length,conExante:clients.filter(c=>c.exante).length,conConflictos:clients.filter(c=>c.conflictos).length,vencidos:clients.filter(c=>c.estado==="vencido").length};
+    const trimestre=Math.ceil((new Date().getMonth()+1)/3);
+    await callAI("Eres experto en reportes regulatorios CNMV en España. Genera un "+(reporteTipo==="trimestral"?"informe estadístico trimestral":"memoria anual de actividad")+" completo y formal.\n\nEAF: "+eafNombre+"\nPERÍODO: "+(reporteTipo==="trimestral"?"T"+trimestre+" "+new Date().getFullYear():"Ejercicio "+new Date().getFullYear())+"\nFECHA: "+new Date().toLocaleDateString("es-ES")+"\n\nDATOS:\n- Clientes totales: "+stats.total+"\n- Activos: "+stats.activos+"\n- Minoristas: "+stats.minoristas+" / Profesionales: "+stats.profesionales+"\n- Tests vigentes: "+stats.conTest+"/"+stats.total+"\n- Informes entregados: "+stats.conInforme+"/"+stats.total+"\n- Ex-ante entregados: "+stats.conExante+"/"+stats.total+"\n- Conflictos comunicados: "+stats.conConflictos+"/"+stats.total+"\n- Revisiones vencidas: "+stats.vencidos+"\n\n"+(reporteTipo==="trimestral"?"Estructura:\n\nINFORME ESTADÍSTICO T"+trimestre+"/"+new Date().getFullYear()+"\nEAF: "+eafNombre+"\n\n1. DATOS DE IDENTIFICACIÓN DE LA EAF\n2. CARTERA DE CLIENTES\n3. ACTIVIDAD DE ASESORAMIENTO\n4. CUMPLIMIENTO REGULATORIO\n5. INCIDENCIAS Y RECLAMACIONES\n6. DECLARACIÓN DE VERACIDAD":"Estructura:\n\nMEMORIA ANUAL "+new Date().getFullYear()+"\nEAF: "+eafNombre+"\n\n1. IDENTIFICACIÓN Y ORGANIZACIÓN\n2. RECURSOS HUMANOS Y CERTIFICACIONES\n3. EVOLUCIÓN DE CARTERA DE CLIENTES\n4. ACTIVIDAD DE ASESORAMIENTO\n5. CUMPLIMIENTO DEL PROGRAMA DE ACTIVIDADES\n6. POLÍTICA DE RETRIBUCIONES\n7. GESTIÓN DE CONFLICTOS\n8. RECLAMACIONES\n9. CONCLUSIONES\n10. DECLARACIÓN RESPONSABLE")+"\n\nSé exhaustivo. Incluye análisis cuantitativo de los datos. Lenguaje regulatorio profesional.",
+      (txt)=>{setReporteDoc(txt);notify("Reporte CNMV generado ✓");},setReporteDoc);
+    setReporteLoading(false);
+  };
+
+  const saveClient=()=>{
+    if(!newC.nombre.trim()||!newC.email.trim())return notify("Nombre y email son obligatorios",false);
+    setClients(cs=>[...cs,{...newC,id:Date.now(),pat:parseFloat(newC.pat)||0,perfil:null,fechaTest:null,proxRev:null,estado:"pendiente",alertas:3,test:false,informe:false,exante:false,conflictos:false}]);
+    setNewC({nombre:"",email:"",tel:"",pat:"",cat:"Minorista"});
+    setShowAdd(false);notify("Cliente añadido ✓");
+  };
+
+  const dl=(text,filename)=>{const b=new Blob([text],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=filename;a.click();};
+
+  const totalAlertas=clients.reduce((a,c)=>a+c.alertas,0);
+  const total=clients.length;
+  const sinTest=clients.filter(c=>!c.test).length;
+  const sinInforme=clients.filter(c=>!c.informe).length;
+  const sinExante=clients.filter(c=>!c.exante).length;
+  const sinConflictos=clients.filter(c=>!c.conflictos).length;
+  const sinRevision=clients.filter(c=>c.estado==="vencido").length;
+
+  const s={
+    card:{background:"#fff",borderRadius:12,border:"1px solid #e2e8f0",boxShadow:"0 1px 3px rgba(0,0,0,.05)"},
+    btn:(bg,fg,dis)=>({padding:"8px 16px",background:dis?"#e2e8f0":bg,color:dis?"#94a3b8":(fg||"#fff"),border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:dis?"not-allowed":"pointer"}),
+    inp:{width:"100%",padding:"8px 11px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,color:"#0f172a",outline:"none",boxSizing:"border-box"},
+    lbl:{fontSize:11,fontWeight:700,color:"#64748b",display:"block",marginBottom:4},
+  };
+
+  const NAV=[
+    {id:"dash",icon:"▣",lbl:"Dashboard"},
+    {id:"clients",icon:"◉",lbl:"Clientes"},
+    {id:"test",icon:"◈",lbl:"Test Idoneidad",lock:!sel},
+    {id:"informe",icon:"◫",lbl:"Informe IA",lock:!sel},
+    {id:"costes",icon:"💰",lbl:"Costes Ex-Ante"},
+    {id:"conflictos",icon:"⚖️",lbl:"Conflictos"},
+    {id:"revision",icon:"🔄",lbl:"Revisión Anual"},
+    {id:"reportes",icon:"📊",lbl:"Reportes CNMV"},
+  ];
+
+  const DV=({title,doc,ld,fn})=>(
+    <div style={{...s.card,overflow:"hidden"}}>
+      <div style={{background:"#0f172a",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{color:"#f1f5f9",fontWeight:700,fontSize:12}}>{title}</span>
+        {doc&&<button onClick={()=>dl(doc,fn)} style={{...s.btn("#1e40af"),fontSize:11,padding:"4px 10px"}}>⬇️ Descargar</button>}
+      </div>
+      <div style={{padding:16,minHeight:300,maxHeight:480,overflowY:"auto"}}>
+        {ld?<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:260,gap:10}}>
+          <div style={{width:36,height:36,border:"4px solid #e2e8f0",borderTop:"4px solid #3b82f6",borderRadius:"50%",animation:"spin .8s linear infinite"}}/>
+          <p style={{color:"#64748b",fontSize:13}}>Generando con IA...</p>
+        </div>:doc?<pre style={{fontSize:11.5,lineHeight:1.9,color:"#1e293b",whiteSpace:"pre-wrap",fontFamily:"Georgia,serif"}}>{doc}</pre>
+        :<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:260,gap:8,color:"#94a3b8"}}>
+          <span style={{fontSize:36}}>📄</span>
+          <p style={{fontSize:13,fontWeight:600}}>El documento aparecerá aquí</p>
+          {!apiKey&&<p style={{fontSize:11,color:"#f59e0b"}}>⚠️ Configura tu clave API primero</p>}
+        </div>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:14}}>
+
+      {/* HEADER */}
+      <header style={{background:"#0f172a",padding:"0 16px",height:52,display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+        <button onClick={()=>setMenuOpen(o=>!o)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:20,cursor:"pointer",padding:"4px 8px",borderRadius:6}}>☰</button>
+        <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+          <div style={{width:26,height:26,background:"linear-gradient(135deg,#3b82f6,#1d4ed8)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>⚖️</div>
+          <div>
+            <div style={{color:"#f8fafc",fontWeight:800,fontSize:12,lineHeight:1}}>EAF Compliance Studio</div>
+            <div style={{color:"#3b82f6",fontSize:8,fontWeight:700,letterSpacing:"1px"}}>MiFID II</div>
+          </div>
+        </div>
+        {totalAlertas>0&&<span style={{background:"#dc2626",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20}}>{totalAlertas} alertas</span>}
+        <button onClick={()=>setShowApi(true)} style={{background:apiKey?"#15803d":"#374151",border:"none",borderRadius:6,color:apiKey?"#fff":"#94a3b8",fontSize:11,cursor:"pointer",padding:"5px 10px"}}>⚙️ {apiKey?"API ✓":"API"}</button>
+      </header>
+
+      {/* DRAWER MENU */}
+      {menuOpen&&<div style={{position:"fixed",inset:0,zIndex:300}} onClick={()=>setMenuOpen(false)}>
+        <div style={{position:"absolute",top:0,left:0,bottom:0,width:220,background:"#0f172a",boxShadow:"4px 0 20px rgba(0,0,0,.4)"}} onClick={e=>e.stopPropagation()}>
+          <div style={{padding:"14px 16px",borderBottom:"1px solid #1e293b",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{color:"#f8fafc",fontWeight:800,fontSize:13}}>Navegación</span>
+            <button onClick={()=>setMenuOpen(false)} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:18}}>×</button>
+          </div>
+          {sel&&<div style={{margin:"10px",padding:"10px",background:"rgba(59,130,246,.1)",borderRadius:8,border:"1px solid rgba(59,130,246,.2)"}}>
+            <div style={{fontSize:9,color:"#3b82f6",fontWeight:800,letterSpacing:"1px",marginBottom:2}}>CLIENTE ACTIVO</div>
+            <div style={{color:"#f1f5f9",fontSize:11,fontWeight:700}}>{sel.nombre.split(" ").slice(0,2).join(" ")}</div>
+            <div style={{color:"#64748b",fontSize:10}}>{sel.perfil||"Sin perfil"}</div>
+          </div>}
+          {NAV.map(item=>{
+            const cur=page===item.id;
+            return <button key={item.id} onClick={()=>!item.lock&&nav(item.id)}
+              style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 16px",border:"none",cursor:item.lock?"default":"pointer",background:cur?"rgba(59,130,246,.2)":"transparent",borderLeft:"3px solid "+(cur?"#3b82f6":"transparent"),color:item.lock?"#334155":cur?"#93c5fd":"#94a3b8",fontSize:13,fontWeight:cur?700:400,textAlign:"left"}}>
+              <span>{item.icon}</span><span>{item.lbl}</span>
+            </button>;
+          })}
+          <div style={{padding:"10px 16px",borderTop:"1px solid #1e293b",marginTop:8}}>
+            <button onClick={()=>{setShowApi(true);setMenuOpen(false);}} style={{...s.btn("#1e293b","#94a3b8"),width:"100%",border:"1px solid #334155",fontSize:12}}>
+              ⚙️ Configuración API {apiKey&&"✓"}
+            </button>
+          </div>
+        </div>
+      </div>}
+
+      {/* API MODAL */}
+      {showApi&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div style={{background:"#fff",borderRadius:14,padding:22,width:"100%",maxWidth:400,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+          <h3 style={{margin:"0 0 8px",fontSize:15,fontWeight:800,color:"#0f172a"}}>⚙️ Configuración</h3>
+          <p style={{fontSize:12,color:"#64748b",margin:"0 0 12px",lineHeight:1.6}}>Introduce tu clave API de Anthropic para generar documentos con IA. Se guarda solo en memoria — desaparece al cerrar la app.<br/><strong>Consíguela en: console.anthropic.com</strong></p>
+          <label style={s.lbl}>Nombre de tu EAF</label>
+          <input value={eafNombre} onChange={e=>setEafNombre(e.target.value)} style={{...s.inp,marginBottom:10}}/>
+          <label style={s.lbl}>Clave API Anthropic (sk-ant-...)</label>
+          <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="sk-ant-api03-..." style={{...s.inp,fontFamily:"monospace",marginBottom:8}}/>
+          <p style={{fontSize:10,color:"#94a3b8",marginBottom:14,lineHeight:1.5}}>🔒 Recomendado: en console.anthropic.com → Billing → pon límite de 5-10€/mes para protegerte.</p>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setShowApi(false);notify("Configuración guardada ✓");}} style={{...s.btn("#3b82f6"),flex:1}}>Guardar</button>
+            <button onClick={()=>setShowApi(false)} style={{...s.btn("#f1f5f9","#374151"),flex:1,border:"1px solid #e2e8f0"}}>Cerrar</button>
+          </div>
+        </div>
+      </div>}
+
+      {/* TOAST */}
+      {toast&&<div style={{position:"fixed",top:60,right:12,zIndex:500,background:toast.ok?"#f0fdf4":"#fff1f2",color:toast.ok?"#166534":"#991b1b",border:"1px solid "+(toast.ok?"#86efac":"#fca5a5"),padding:"10px 14px",borderRadius:10,fontSize:13,fontWeight:600,boxShadow:"0 4px 16px rgba(0,0,0,.15)",maxWidth:"85vw"}}>{toast.msg}</div>}
+
+      {/* CONTENT */}
+      <div style={{padding:"16px 14px",maxWidth:700,margin:"0 auto"}}>
+
+        {/* ═══ DASHBOARD ═══ */}
+        {page==="dash"&&<div>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 3px"}}>Panel de Control</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:14}}>{new Date().toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"})} · {eafNombre}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+            {[[total,"👥","Clientes"],[clients.filter(c=>c.estado==="activo").length,"✅","Activos"],[clients.filter(c=>c.alertas>0).length,"⚠️","Con Alertas"],[totalAlertas,"🚨","Infracciones"]].map(([v,icon,lb],i)=>(
+              <div key={i} style={{...s.card,padding:"12px 14px"}}>
+                <div style={{fontSize:20,marginBottom:5}}>{icon}</div>
+                <div style={{fontSize:24,fontWeight:900,color:"#0f172a",lineHeight:1}}>{v}</div>
+                <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{lb}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{...s.card,padding:14,marginBottom:10}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#0f172a",margin:"0 0 12px"}}>🏛️ 5 Infracciones CNMV</h3>
+            {[["📋","Test de idoneidad",total-sinTest,"Art.25.2"],["📄","Informe idoneidad",total-sinInforme,"Art.25.6"],["💰","Disclosure ex-ante",total-sinExante,"Art.24.4"],["⚖️","Conflictos documentados",total-sinConflictos,"Art.23"],["🔄","Revisión anual al día",total-sinRevision,"Art.54.7"]].map(([ic,lb,ok,art],i)=>{
+              const pct=total>0?Math.round(ok/total*100):0;
+              const col=pct===100?"#15803d":pct>=75?"#b45309":"#dc2626";
+              return <div key={i} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                  <span style={{fontSize:11.5,color:"#374151"}}>{ic} {lb}</span>
+                  <span style={{fontSize:11,fontWeight:800,color:col}}>{ok}/{total} <span style={{color:"#94a3b8",fontWeight:400,fontSize:10}}>{art}</span></span>
+                </div>
+                <div style={{background:"#f1f5f9",borderRadius:4,height:5}}>
+                  <div style={{width:pct+"%",height:"100%",background:col,borderRadius:4}}/>
+                </div>
+              </div>;
+            })}
+          </div>
+          <div style={{...s.card,padding:14,marginBottom:10}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#0f172a",margin:"0 0 10px"}}>🔔 Alertas pendientes</h3>
+            {clients.filter(c=>c.alertas>0).sort((a,b)=>b.alertas-a.alertas).map(c=>{
+              const col=c.alertas>=3?"#dc2626":c.alertas>=2?"#d97706":"#15803d";
+              return <div key={c.id} onClick={()=>{setSel(c);nav("clients");}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 10px",borderRadius:8,marginBottom:6,background:c.alertas>=3?"#fff1f2":c.alertas>=2?"#fffbeb":"#f0fdf4",cursor:"pointer",border:"1px solid "+(c.alertas>=3?"#fecaca":c.alertas>=2?"#fde68a":"#bbf7d0")}}>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>{c.nombre}</div>
+                  <div style={{fontSize:10,color:"#64748b"}}>{!c.test&&"Sin test · "}{!c.informe&&"Sin informe · "}{!c.exante&&"Sin ex-ante"}{!c.conflictos&&" · Sin conflictos"}</div>
+                </div>
+                <span style={{background:col,color:"#fff",borderRadius:20,padding:"2px 9px",fontSize:11,fontWeight:800}}>{c.alertas}</span>
+              </div>;
+            })}
+            {!clients.some(c=>c.alertas>0)&&<div style={{color:"#15803d",fontSize:13,fontWeight:600,textAlign:"center",padding:16}}>✅ Sin alertas pendientes</div>}
+          </div>
+          <div style={{...s.card,padding:14}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#0f172a",margin:"0 0 10px"}}>⚡ Acciones Rápidas</h3>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+              {[["➕ Nuevo Cliente",()=>{nav("clients");setShowAdd(true);},"#3b82f6"],["📋 Test",()=>nav("clients"),"#7c3aed"],["💰 Costes Ex-Ante",()=>nav("costes"),"#0d9488"],["⚖️ Conflictos",()=>nav("conflictos"),"#b45309"],["🔄 Revisiones",()=>nav("revision"),"#6d28d9"],["📊 Reportes CNMV",()=>nav("reportes"),"#1d4ed8"]].map(([l,fn,col],i)=>(
+                <button key={i} onClick={fn} style={{padding:"9px 10px",borderRadius:8,border:"1px solid "+col+"30",background:col+"10",color:col,fontSize:12,fontWeight:600,cursor:"pointer",textAlign:"left"}}>{l}</button>
+              ))}
+            </div>
+          </div>
+        </div>}
+
+        {/* ═══ CLIENTES ═══ */}
+        {page==="clients"&&<div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:0}}>Gestión de Clientes</h1>
+              <p style={{color:"#64748b",fontSize:11,marginTop:2}}>{total} clientes en cartera</p>
+            </div>
+            <button onClick={()=>setShowAdd(!showAdd)} style={{...s.btn("#3b82f6"),fontSize:12,padding:"7px 12px"}}>➕ Añadir</button>
+          </div>
+          {showAdd&&<div style={{...s.card,padding:14,marginBottom:10,border:"2px solid #3b82f6"}}>
+            <h3 style={{fontSize:13,fontWeight:700,margin:"0 0 10px"}}>Nuevo Cliente</h3>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              {[["nombre","Nombre completo *","text"],["email","Email *","email"],["tel","Teléfono","text"],["pat","Patrimonio (€)","number"]].map(([k,lb,type])=>(
+                <div key={k}><label style={s.lbl}>{lb}</label><input type={type} value={newC[k]} onChange={e=>setNewC(p=>({...p,[k]:e.target.value}))} style={s.inp}/></div>
+              ))}
+            </div>
+            <div style={{marginBottom:10}}><label style={s.lbl}>Categoría MiFID II</label><select value={newC.cat} onChange={e=>setNewC(p=>({...p,cat:e.target.value}))} style={s.inp}><option>Minorista</option><option>Profesional</option></select></div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={saveClient} style={s.btn("#3b82f6")}>Guardar</button>
+              <button onClick={()=>setShowAdd(false)} style={{...s.btn("#f1f5f9","#374151"),border:"1px solid #e2e8f0"}}>Cancelar</button>
+            </div>
+          </div>}
+          {clients.map(c=>{
+            const st=ST[c.estado]||ST.pendiente;
+            return <div key={c.id} style={{...s.card,padding:14,marginBottom:8,border:sel?.id===c.id?"2px solid #3b82f6":"1px solid #e2e8f0"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{c.nombre}</div>
+                  <div style={{fontSize:11,color:"#64748b"}}>{c.cat} · {fmt(c.pat)}</div>
+                  <div style={{fontSize:11,color:"#94a3b8"}}>{c.email}</div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                  <span style={{fontSize:10,fontWeight:700,color:st.col,background:st.bg,padding:"2px 8px",borderRadius:20}}>{st.lbl}</span>
+                  {c.alertas>0&&<span style={{fontSize:10,background:"#dc2626",color:"#fff",padding:"1px 7px",borderRadius:20,fontWeight:800}}>{c.alertas} alertas</span>}
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3,padding:"8px",background:"#f8fafc",borderRadius:7,marginBottom:8}}>
+                {[["📋 Test",c.test],["📄 Informe IA",c.informe],["💰 Ex-ante",c.exante],["⚖️ Conflictos",c.conflictos]].map(([l,ok],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:11}}>
+                    <span style={{color:ok?"#15803d":"#dc2626",fontWeight:800}}>{ok?"✓":"✗"}</span>
+                    <span style={{color:ok?"#374151":"#dc2626"}}>{l}</span>
+                  </div>
+                ))}
+              </div>
+              {c.perfil&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                <span style={{fontSize:11,fontWeight:700,color:"#1d4ed8",background:"#eff6ff",padding:"2px 7px",borderRadius:5}}>{c.perfil}</span>
+                {c.proxRev&&<span style={{fontSize:10,color:new Date(c.proxRev)<new Date()?"#dc2626":"#94a3b8"}}>Rev: {fmtDate(c.proxRev)}</span>}
+              </div>}
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <button onClick={()=>startTest(c)} style={{...s.btn("#7c3aed"),fontSize:11,padding:"6px 11px"}}>{c.test?"🔄 Re-test":"📋 Test"}</button>
+                {c.test&&<button onClick={()=>{setSel(c);nav("informe");}} style={{...s.btn("#0891b2"),fontSize:11,padding:"6px 11px"}}>📄 Informe</button>}
+                <button onClick={()=>{setCostesClient(c);nav("costes");}} style={{...s.btn("#0d9488"),fontSize:11,padding:"6px 11px"}}>💰 Ex-Ante</button>
+              </div>
+            </div>;
+          })}
+        </div>}
+
+        {/* ═══ TEST ═══ */}
+        {page==="test"&&sel&&<div>
+          <button onClick={()=>nav("clients")} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:12,padding:0,marginBottom:10}}>← Volver a Clientes</button>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 2px"}}>Test de Idoneidad</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:12}}><strong>{sel.nombre}</strong> · Art. 25.2 MiFID II</p>
+
+          {ts.phase==="test"&&(()=>{
+            const sec=SECCIONES[ts.sec];
+            const done=allAns(sec);
+            return <div>
+              <div style={{...s.card,padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:6,overflowX:"auto"}}>
+                {SECCIONES.map((sec2,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,background:i<ts.sec?"#15803d":i===ts.sec?"#3b82f6":"#e2e8f0",color:i<=ts.sec?"#fff":"#94a3b8"}}>{i<ts.sec?"✓":i+1}</div>
+                    <span style={{fontSize:10,color:i===ts.sec?"#3b82f6":"#94a3b8",fontWeight:i===ts.sec?700:400}}>{sec2.titulo.split(" ")[0]}</span>
+                    {i<SECCIONES.length-1&&<div style={{width:8,height:1,background:i<ts.sec?"#15803d":"#e2e8f0"}}/>}
+                  </div>
+                ))}
+              </div>
+              <div style={{background:"linear-gradient(135deg,#0f172a,#1e3a5f)",borderRadius:10,padding:"13px 15px",marginBottom:10,color:"#fff"}}>
+                <div style={{fontSize:20,marginBottom:3}}>{sec.icon}</div>
+                <h2 style={{fontSize:14,fontWeight:800,margin:"0 0 2px"}}>Sección {sec.id}: {sec.titulo}</h2>
+                <p style={{color:"#93c5fd",fontSize:10,margin:0}}>{sec.base}</p>
+              </div>
+              {sec.qs.map((q,qi)=>{
+                const picked=ts.resp[q.id];
+                return <div key={q.id} style={{...s.card,padding:13,marginBottom:8}}>
+                  <div style={{display:"flex",gap:8,marginBottom:10}}>
+                    <span style={{minWidth:18,height:18,borderRadius:"50%",background:picked!==undefined?"#dcfce7":"#eff6ff",color:picked!==undefined?"#15803d":"#3b82f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,flexShrink:0,marginTop:1}}>{picked!==undefined?"✓":qi+1}</span>
+                    <p style={{fontSize:12.5,fontWeight:600,color:"#0f172a",margin:0,lineHeight:1.5}}>{q.q}</p>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                    {q.ops.map((op,oi)=>{
+                      const isSel=ts.resp[q.id]===op.p;
+                      return <button key={oi} onClick={()=>setTs(st=>({...st,resp:{...st.resp,[q.id]:op.p}}))}
+                        style={{padding:"9px 11px",textAlign:"left",borderRadius:7,cursor:"pointer",border:isSel?"2px solid #3b82f6":"1px solid #e2e8f0",background:isSel?"#eff6ff":"#f8fafc",color:isSel?"#1d4ed8":"#374151",fontSize:12,fontWeight:isSel?600:400,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{width:14,height:14,borderRadius:"50%",border:"2px solid "+(isSel?"#3b82f6":"#cbd5e1"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,background:isSel?"#3b82f6":"transparent"}}>
+                          {isSel&&<span style={{color:"#fff",fontSize:7,fontWeight:900}}>✓</span>}
+                        </span>
+                        {op.t}
+                      </button>;
+                    })}
+                  </div>
+                </div>;
+              })}
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                <button onClick={()=>ts.sec>0&&setTs(st=>({...st,sec:st.sec-1}))} disabled={ts.sec===0} style={{...s.btn("#f1f5f9","#374151",ts.sec===0),border:"1px solid #e2e8f0"}}>← Anterior</button>
+                <button onClick={nextSec} disabled={!done} style={{...s.btn("#3b82f6","#fff",!done)}}>
+                  {ts.sec===SECCIONES.length-1?"✅ Finalizar":"Siguiente →"}
+                </button>
+              </div>
+            </div>;
+          })()}
+
+          {ts.phase==="done"&&ts.result&&<div style={{...s.card,padding:26,textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:10}}>🎯</div>
+            <h2 style={{fontSize:17,fontWeight:800,color:"#0f172a",marginBottom:5}}>Test Completado</h2>
+            <p style={{color:"#64748b",fontSize:12,marginBottom:16}}><strong>{sel.nombre}</strong></p>
+            <div style={{background:ts.result.bg,border:"2px solid "+ts.result.bdr,borderRadius:10,padding:"14px 22px",marginBottom:10,display:"inline-block"}}>
+              <div style={{fontSize:10,color:ts.result.col,fontWeight:800,letterSpacing:"1px",marginBottom:3}}>PERFIL DE RIESGO</div>
+              <div style={{fontSize:22,fontWeight:900,color:ts.result.col}}>{ts.result.label}</div>
+            </div>
+            <p style={{color:"#94a3b8",fontSize:11,marginBottom:4}}>{ts.result.desc}</p>
+            <p style={{color:"#64748b",fontSize:11,marginBottom:16}}>Próxima revisión: <strong>{fmtDate(new Date(Date.now()+365*86400000).toISOString().split("T")[0])}</strong></p>
+            <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={()=>nav("informe")} style={s.btn("#3b82f6")}>📄 Generar Informe</button>
+              <button onClick={()=>{setCostesClient(sel);nav("costes");}} style={s.btn("#0d9488")}>💰 Ex-Ante</button>
+              <button onClick={()=>nav("clients")} style={{...s.btn("#f1f5f9","#374151"),border:"1px solid #e2e8f0"}}>Volver</button>
+            </div>
+          </div>}
+        </div>}
+
+        {/* ═══ INFORME ═══ */}
+        {page==="informe"&&<div>
+          <button onClick={()=>nav("clients")} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:12,padding:0,marginBottom:10}}>← Volver</button>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 3px"}}>Informe de Idoneidad IA</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:14}}>Art. 25.6 MiFID II · Art. 54.12 RD 2017/565</p>
+          {!sel?<div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,padding:14,color:"#92400e",fontSize:13}}>⚠️ Selecciona un cliente en <strong>Clientes</strong>.</div>:<div>
+            <div style={{...s.card,padding:12,marginBottom:10}}>
+              {[["Nombre",sel.nombre],["Categoría",sel.cat],["Patrimonio",fmt(sel.pat)],["Perfil",ts.result?.label||sel.perfil||"—"],["Test",fmtDate(sel.fechaTest)]].map(([k,v])=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #f1f5f9",fontSize:12}}>
+                  <span style={{color:"#64748b"}}>{k}</span><span style={{fontWeight:600,color:"#0f172a"}}>{v}</span>
+                </div>
+              ))}
+            </div>
+            {!sel.test&&!ts.result&&<div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:12,marginBottom:10,fontSize:12,color:"#92400e"}}>
+              ⚠️ Completa el test primero.
+              <button onClick={()=>startTest(sel)} style={{display:"block",marginTop:8,...s.btn("#d97706"),fontSize:11}}>Ir al Test →</button>
+            </div>}
+            {!apiKey&&<div style={{background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:8,padding:12,marginBottom:10,fontSize:12,color:"#0369a1"}}>
+              💡 Configura tu clave API.
+              <button onClick={()=>setShowApi(true)} style={{display:"block",marginTop:8,...s.btn("#0891b2"),fontSize:11}}>⚙️ Configurar →</button>
+            </div>}
+            <button onClick={genInforme} disabled={loading||(!sel.test&&!ts.result)} style={{...s.btn("#3b82f6","#fff",loading||(!sel.test&&!ts.result)),width:"100%",padding:"12px",fontSize:13,marginBottom:10}}>
+              {loading?"⏳ Generando...":"🤖 Generar Informe con IA"}
+            </button>
+            <DV title={"📄 Informe — "+sel.nombre} doc={docText} ld={loading} fn={"Informe_"+sel.nombre.replace(/ /g,"_")+".txt"}/>
+          </div>}
+        </div>}
+
+        {/* ═══ COSTES ═══ */}
+        {page==="costes"&&<div>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 3px"}}>💰 Costes Ex-Ante</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:14}}>Art. 24.4 MiFID II · Obligatorio antes de cada operación</p>
+          <div style={{...s.card,padding:14,marginBottom:10}}>
+            <label style={s.lbl}>Seleccionar Cliente</label>
+            <select value={costesClient?.id||""} onChange={e=>{const c=clients.find(x=>x.id===parseInt(e.target.value));setCostesClient(c||null);setCostesDoc("");}} style={{...s.inp,marginBottom:8}}>
+              <option value="">— Seleccionar cliente —</option>
+              {clients.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+            {costesClient&&<div style={{fontSize:11,color:"#64748b"}}>{costesClient.cat} · {fmt(costesClient.pat)} · {costesClient.perfil||"Sin perfil"}</div>}
+          </div>
+          <div style={{...s.card,padding:14,marginBottom:10}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#0f172a",margin:"0 0 10px"}}>Parámetros de la Operación</h3>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[["importe","Importe (€)"],["comisionAsesora","Comisión EAF (%)"],["ter","TER fondo (%)"],["custodia","Custodia (%)"],["retrocesion","Retrocesión (%)"],["entradaSalida","Entrada/Salida (%)"]].map(([k,lb])=>(
+                <div key={k}><label style={s.lbl}>{lb}</label><input type="number" step="0.01" value={costesForm[k]} onChange={e=>setCostesForm(p=>({...p,[k]:parseFloat(e.target.value)||0}))} style={s.inp}/></div>
+              ))}
+            </div>
+          </div>
+          {(()=>{
+            const{importe,comisionAsesora,ter,custodia,retrocesion,entradaSalida}=costesForm;
+            const anual=(comisionAsesora+ter+custodia-retrocesion)/100*importe;
+            const yr1=anual+(entradaSalida/100*importe);
+            return <div style={{...s.card,padding:12,marginBottom:10,background:"#f0fdf4",border:"1px solid #86efac"}}>
+              <div style={{fontSize:12,fontWeight:800,color:"#15803d",marginBottom:6}}>📊 Impacto en Costes</div>
+              {[["Año 1",yr1],["Años 1-3",yr1+anual*2],["Años 1-5",yr1+anual*4]].map(([lb,v])=>(
+                <div key={lb} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:12,borderBottom:"1px solid #bbf7d0"}}>
+                  <span style={{color:"#166534"}}>{lb}</span>
+                  <span style={{fontWeight:700,color:"#15803d"}}>{fmt(v)} ({((v/importe)*100).toFixed(2)}%)</span>
+                </div>
+              ))}
+            </div>;
+          })()}
+          <button onClick={genCostes} disabled={costesLoading||!costesClient} style={{...s.btn("#0d9488","#fff",costesLoading||!costesClient),width:"100%",padding:"12px",fontSize:13,marginBottom:10}}>
+            {costesLoading?"⏳ Generando...":"🤖 Generar Disclosure Ex-Ante"}
+          </button>
+          <DV title="💰 Disclosure Costes Ex-Ante" doc={costesDoc} ld={costesLoading} fn={"ExAnte_"+(costesClient?.nombre.replace(/ /g,"_")||"cliente")+".txt"}/>
+        </div>}
+
+        {/* ═══ CONFLICTOS ═══ */}
+        {page==="conflictos"&&<div>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 3px"}}>⚖️ Política de Conflictos</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:14}}>Art. 23 MiFID II · Arts. 33-35 RD 2017/565</p>
+          <div style={{...s.card,padding:14,marginBottom:10}}>
+            <label style={s.lbl}>Nombre de la EAF</label>
+            <input value={eafNombre} onChange={e=>setEafNombre(e.target.value)} style={{...s.inp,marginBottom:12}}/>
+            <h3 style={{fontSize:12,fontWeight:800,color:"#0f172a",margin:"0 0 8px"}}>Conflictos a incluir en la política</h3>
+            {[["retrocesiones","💸 Retrocesiones e incentivos de terceros","Art. 24.8"],["interesPropio","📈 Interés propio en instrumentos recomendados","Art. 23.1.a"],["interClientes","👥 Conflictos entre clientes","Art. 23.1.b"],["beneficiosPersonales","🎁 Beneficios personales del asesor","Art. 23.1.c"],["relacionesPersonales","❤️ Relaciones personales o familiares","Art. 23.1.d"]].map(([k,lb,art])=>(
+              <label key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #f1f5f9",cursor:"pointer"}}>
+                <input type="checkbox" checked={conflictosConfig[k]} onChange={e=>setConflictosConfig(p=>({...p,[k]:e.target.checked}))} style={{width:16,height:16,cursor:"pointer"}}/>
+                <div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>{lb}</div>
+                  <div style={{fontSize:10,color:"#94a3b8"}}>{art}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+          <button onClick={genConflictos} disabled={conflictosLoading} style={{...s.btn("#b45309","#fff",conflictosLoading),width:"100%",padding:"12px",fontSize:13,marginBottom:10}}>
+            {conflictosLoading?"⏳ Generando...":"🤖 Generar Política de Conflictos"}
+          </button>
+          <DV title="⚖️ Política de Conflictos de Interés" doc={conflictosDoc} ld={conflictosLoading} fn={"Politica_Conflictos_"+eafNombre.replace(/ /g,"_")+".txt"}/>
+        </div>}
+
+        {/* ═══ REVISIÓN ═══ */}
+        {page==="revision"&&<div>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 3px"}}>🔄 Revisión Anual</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:14}}>Art. 54.7 RD 2017/565 · Obligatoria cada 12 meses</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+            {[[clients.filter(c=>c.proxRev&&daysDiff(c.proxRev)>60).length,"✅","Al día","#15803d"],[clients.filter(c=>c.proxRev&&daysDiff(c.proxRev)>0&&daysDiff(c.proxRev)<=60).length,"⏰","Próx. 60d","#b45309"],[clients.filter(c=>c.estado==="vencido"||(c.proxRev&&daysDiff(c.proxRev)<=0)).length,"🚨","Vencidos","#991b1b"],[clients.filter(c=>!c.test).length,"❓","Sin test","#475569"]].map(([v,icon,lb,col],i)=>(
+              <div key={i} style={{...s.card,padding:"11px 12px",borderLeft:"4px solid "+col}}>
+                <div style={{fontSize:16,marginBottom:4}}>{icon}</div>
+                <div style={{fontSize:22,fontWeight:900,color:"#0f172a",lineHeight:1}}>{v}</div>
+                <div style={{fontSize:11,color:col,fontWeight:600,marginTop:2}}>{lb}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{...s.card,overflow:"hidden",marginBottom:12}}>
+            <div style={{background:"#0f172a",padding:"10px 14px"}}>
+              <span style={{color:"#f1f5f9",fontWeight:700,fontSize:12}}>Estado de Revisiones por Cliente</span>
+            </div>
+            {clients.sort((a,b)=>{
+              const dA=a.proxRev?daysDiff(a.proxRev):9999;
+              const dB=b.proxRev?daysDiff(b.proxRev):9999;
+              return dA-dB;
+            }).map((c)=>{
+              const dias=c.proxRev?daysDiff(c.proxRev):null;
+              const vencido=dias!==null&&dias<=0;
+              const proximo=dias!==null&&dias>0&&dias<=60;
+              const diasColor=vencido?"#dc2626":proximo?"#d97706":"#15803d";
+              const diasLabel=dias===null?"Sin test":vencido?"Vencido hace "+Math.abs(dias)+"d":proximo?"Vence en "+dias+"d":dias+" días";
+              return <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",borderBottom:"1px solid #f1f5f9",background:vencido?"#fff8f8":proximo?"#fffef0":"#fff",gap:8,flexWrap:"wrap"}}>
+                <div style={{flex:1,minWidth:150}}>
+                  <div style={{fontSize:12.5,fontWeight:700,color:"#0f172a"}}>{c.nombre}</div>
+                  <div style={{fontSize:10,color:"#64748b"}}>{c.cat} · {c.perfil||"Sin perfil"} · Rev: {fmtDate(c.proxRev)}</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:11,fontWeight:700,color:diasColor,whiteSpace:"nowrap"}}>{diasLabel}</span>
+                  <button onClick={()=>startTest(c)} style={{...s.btn(vencido?"#dc2626":proximo?"#d97706":"#3b82f6"),fontSize:11,padding:"5px 10px"}}>
+                    {c.test?"🔄 Re-test":"📋 Test"}
+                  </button>
+                </div>
+              </div>;
+            })}
+          </div>
+          <div style={{...s.card,padding:14,background:"#eff6ff",border:"1px solid #bfdbfe"}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#1d4ed8",margin:"0 0 8px"}}>ℹ️ Obligaciones Regulatorias</h3>
+            <div style={{fontSize:12,color:"#374151",lineHeight:1.8}}>
+              • Test de idoneidad actualizable al menos cada <strong>12 meses</strong> (Art. 54.7 RD 2017/565)<br/>
+              • Actualización inmediata si el cliente comunica <strong>cambios significativos</strong><br/>
+              • Una de las infracciones <strong>más frecuentes</strong> detectadas en inspecciones CNMV<br/>
+              • Enviar recordatorio <strong>60 días antes</strong> del vencimiento
+            </div>
+          </div>
+        </div>}
+
+        {/* ═══ REPORTES ═══ */}
+        {page==="reportes"&&<div>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:"0 0 3px"}}>📊 Reportes CNMV</h1>
+          <p style={{color:"#64748b",fontSize:11,marginBottom:14}}>Estadísticas trimestrales · Memoria anual · Calendario regulatorio</p>
+          <div style={{...s.card,padding:14,marginBottom:12}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#0f172a",margin:"0 0 10px"}}>📅 Calendario {new Date().getFullYear()}</h3>
+            {[
+              {fecha:"15 abril",ob:"Estadísticas T1",tipo:"trimestral",dias:daysDiff(new Date().getFullYear()+"-04-15")},
+              {fecha:"15 julio",ob:"Estadísticas T2",tipo:"trimestral",dias:daysDiff(new Date().getFullYear()+"-07-15")},
+              {fecha:"31 julio",ob:"Memoria anual actividad",tipo:"anual",dias:daysDiff(new Date().getFullYear()+"-07-31")},
+              {fecha:"15 octubre",ob:"Estadísticas T3",tipo:"trimestral",dias:daysDiff(new Date().getFullYear()+"-10-15")},
+              {fecha:"15 ene (año+1)",ob:"Estadísticas T4",tipo:"trimestral",dias:daysDiff((new Date().getFullYear()+1)+"-01-15")},
+              {fecha:"31 ene (año+1)",ob:"Costes ex-post clientes",tipo:"expost",dias:daysDiff((new Date().getFullYear()+1)+"-01-31")},
+            ].map((ob,i)=>{
+              const vencido=ob.dias<0;
+              const proximo=ob.dias>=0&&ob.dias<=30;
+              const col=vencido?"#dc2626":proximo?"#d97706":"#15803d";
+              const tipoCol=ob.tipo==="trimestral"?"#1d4ed8":ob.tipo==="anual"?"#7c3aed":"#0891b2";
+              return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:vencido?"#fff1f2":proximo?"#fffbeb":"#f8fafc",border:"1px solid "+col+"20",marginBottom:5}}>
+                <div>
+                  <span style={{fontSize:9,fontWeight:700,color:tipoCol,background:tipoCol+"15",padding:"1px 6px",borderRadius:10,marginRight:5}}>{ob.tipo}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:"#0f172a"}}>{ob.ob}</span>
+                  <span style={{fontSize:10,color:"#64748b",marginLeft:4}}>· {ob.fecha}</span>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,color:col,whiteSpace:"nowrap",marginLeft:8}}>{vencido?"Hace "+Math.abs(ob.dias)+"d":proximo?"En "+ob.dias+"d":ob.dias+"d"}</span>
+              </div>;
+            })}
+          </div>
+          <div style={{...s.card,padding:14,marginBottom:10}}>
+            <h3 style={{fontSize:13,fontWeight:800,color:"#0f172a",margin:"0 0 10px"}}>Generar Reporte</h3>
+            <label style={s.lbl}>Tipo de reporte</label>
+            <select value={reporteTipo} onChange={e=>{setReporteTipo(e.target.value);setReporteDoc("");}} style={{...s.inp,marginBottom:10}}>
+              <option value="trimestral">📊 Informe Estadístico Trimestral</option>
+              <option value="anual">📋 Memoria Anual de Actividad</option>
+            </select>
+            <div style={{fontSize:12,color:"#64748b",background:"#f8fafc",padding:"10px",borderRadius:8,marginBottom:10,lineHeight:1.7}}>
+              <strong>Datos actuales:</strong> {clients.length} clientes · {clients.filter(c=>c.test).length} tests · {clients.filter(c=>c.informe).length} informes · {clients.filter(c=>c.estado==="vencido").length} revisiones vencidas
+            </div>
+            {!apiKey&&<div style={{background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:8,padding:10,marginBottom:10,fontSize:12,color:"#0369a1"}}>
+              💡 Configura tu clave API para generar el reporte.
+              <button onClick={()=>setShowApi(true)} style={{display:"block",marginTop:6,...s.btn("#0891b2"),fontSize:11}}>⚙️ Configurar →</button>
+            </div>}
+            <button onClick={genReporte} disabled={reporteLoading} style={{...s.btn("#1d4ed8","#fff",reporteLoading),width:"100%",padding:"12px",fontSize:13,marginBottom:10}}>
+              {reporteLoading?"⏳ Generando...":"🤖 Generar Reporte"}
+            </button>
+          </div>
+          <DV title={reporteTipo==="trimestral"?"📊 Informe Estadístico Trimestral":"📋 Memoria Anual de Actividad"} doc={reporteDoc} ld={reporteLoading} fn={(reporteTipo==="trimestral"?"Informe_Trimestral":"Memoria_Anual")+"_"+new Date().getFullYear()+".txt"}/>
+        </div>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+</script>
+</body>
+</html>
